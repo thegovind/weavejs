@@ -1,0 +1,47 @@
+name: Deploy Illuminate Wiki to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/illuminate/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/configure-pages@v5
+      - name: Install dependencies
+        run: npm install
+        working-directory: .github/illuminate
+      - name: Build VitePress site
+        run: npm run build
+        working-directory: .github/illuminate
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .github/illuminate/.vitepress/dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment
